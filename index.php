@@ -10,14 +10,6 @@ $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $password);
 
 $button = 'Добавить';
 
-if (isset($_POST['action'])) {
-    $description = $_POST['description'];
-
-    $select = "INSERT INTO `tasks` (`description`, `is_done`, `date_added`) VALUES (?, ?, CURRENT_TIMESTAMP)";
-    $statement = $pdo->prepare($select);
-    $statement->execute([$description, 0]);
-}
-
 if (isset($_GET['id'])) {
 $id = $_GET['id'];
 
@@ -27,7 +19,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
 
     $select = "SELECT * FROM `tasks` WHERE `id` = ?";
     $statement = $pdo->prepare($select);
-    $statement->execute([$id]);   
+    $statement->execute([$id]);
+    $description = $statement->fetch()['description'];
 }
 
 //Udalit'
@@ -35,6 +28,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $select = "DELETE FROM `tasks` WHERE `id` = ?";
     $statement = $pdo->prepare($select);
     $statement->execute([$id]);
+    $description = $statement->fetch()['description'];
 }
 
 
@@ -43,19 +37,26 @@ if (isset($_GET['action']) && $_GET['action'] == 'done') {
     $select = "UPDATE `tasks` SET `is_done` = 1 WHERE `id` = ?";
     $statement = $pdo->prepare($select);
     $statement->execute([$id]);
+    $description = $statement->fetch()['description'];
 }
 
 }
 
+if (isset($_POST['action']) && empty($_POST['id'])) {
+    $description = $_POST['description'];
 
-if (isset($_POST['action']) && isset($_GET['id'])) {
+    $select = "INSERT INTO `tasks` (`description`, `is_done`, `date_added`) VALUES (?, ?, CURRENT_TIMESTAMP)";
+    $statement = $pdo->prepare($select);
+    $statement->execute([$description, 0]);
+}elseif (isset($_POST['save']) && $_POST['save'] == 'saving') {
     $description = $_POST['description'];
     $id = $_POST['id'];
 
-    $select = "UPDATE `tasks` SET `description`= ? WHERE `id` = ?";
+    $select = "UPDATE `tasks` SET `description`= ? WHERE `id` = ? LIMIT 1";
     $statement = $pdo->prepare($select);
     $statement->execute([$description, $id]);
 }
+
 $select = "SELECT * FROM `tasks`";
 $statement = $pdo->prepare($select);
 $statement->execute();
@@ -94,8 +95,9 @@ table tr th {
 <h1>Список дел на сегодня</h1>
 
 <form method="POST" action="index.php">
-    <input type="hidden" name="id" value="">
-	  <input type="text" name="description" placeholder="Описание задачи" value="">
+    <input type="hidden" name="id" value="<?= $_GET ? $_GET['id'] : "" ?>">
+	<input type="hidden" name="save" value="saving">
+	  <input type="text" name="description" placeholder="Описание задачи" value="<?= $_GET ? $description : "" ?>">
   	<button type="submit" name="action" value="save"><?php echo $button; ?></button>
 </form>
 
